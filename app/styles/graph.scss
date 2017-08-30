@@ -1,0 +1,10 @@
+.view {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  .chart {
+    width: 400px;
+    height: 570px;
+    margin: 10px auto;
+  }
+}

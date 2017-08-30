@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>demo</title>
+    <script id="vs" type="x-shader/x-vertex">
+        attribute vec3 position; //顶点位置
+        attribute vec4 color; //顶点颜色
+        uniform   mat4 mvpMatrix;
+        varying   vec4 vColor;
+        void main(void) {
+          vColor = color;
+          gl_Position = mvpMatrix * vec4(position, 1.0);
+        }
+    </script>
+    
+    <script id="fs" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 vColor;
+        void main(void) {
+//          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            gl_FragColor = vColor;
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <canvas id="canvas" width="300" height="300">
+        你的浏览器不支持canvas
+    </canvas>
+    <div class="btn-group">
+        <button class="btn btn-blue btn-minus">-</button>
+        <button class="btn btn-blue btn-plus">+</button>
+    </div>
+</div>
+</body>
+</html>

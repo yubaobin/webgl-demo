@@ -1,0 +1,25 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+button {
+	outline: none;
+}
+
+.container {
+	#canvas {
+	}
+	.btn-group {
+	}
+	.btn {
+		border: 1px solid #bdbdbd;
+		padding: 5px 15px;
+		color: #bdbdbd;
+		border-radius: 5px;
+		cursor: pointer;
+	}
+	.btn-blue {
+		background-color: #1780e5;
+		color: #fff;
+	}
+}
