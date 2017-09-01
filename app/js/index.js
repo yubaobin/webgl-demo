@@ -229,7 +229,7 @@ function set_attr(gl, vbo, attrL, attrS) {
     // 将attributeLocation设置为有效
     gl.enableVertexAttribArray(attrL[i]);
 
-    //通知并添加attributeLocation
+    //添加attribute属性
     gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
   }
 }
