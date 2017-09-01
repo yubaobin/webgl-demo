@@ -13,10 +13,10 @@ $(function() {
   gl.clearDepth(1.0);
   /* 开启“深度测试”, Z-缓存 */
   gl.enable(gl.DEPTH_TEST);
-
+  /* 设置遮挡剔除有效 */
+  gl.enable(gl.CULL_FACE);
   /* 设置深度测试，近的物体遮挡远的物体 */
   gl.depthFunc(gl.LEQUAL);
-
   /* 清除颜色和深度缓存 */
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
@@ -31,27 +31,34 @@ $(function() {
   var attr = [];
   attr[0] = gl.getAttribLocation(program, 'position'); /* 第几个 */
   attr[1] = gl.getAttribLocation(program, 'color'); /* 颜色 */
-
+  attr[2] = gl.getAttribLocation(program, 'normal'); /* 法线 */
   /* 为了保存这个数据是由几个元素组成的 */
-  var attStride = [3, 4];
+  var attStride = [3, 4, 3];
 
   /* 模型（顶点）数据 */
-  var vertex_position = [
-    0.0, 1.0, 0.0,
-    1.0, 0.0, 0.0,
-    -1.0, 0.0, 0.0
-  ];
-  var vertex_color = [
-    1.0, 0.0, 1.0, 1.0,
-    0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0
-  ]
+  // var vertex_position = [
+  //   0.0, 1.0, 0.0,
+  //   1.0, 0.0, 0.0,
+  //   -1.0, 0.0, 0.0
+  // ];
+  // var vertex_color = [
+  //   1.0, 0.0, 1.0, 1.0,
+  //   0.0, 1.0, 0.0, 1.0,
+  //   0.0, 0.0, 1.0, 1.0
+  // ]
+
+  var circle3D = torus(32, 32, 1.0, 2.0);
+
+  var index = circle3D[2];
   /* 生成VBO */
   var vbos = [];
-  vbos[0] = create_vbo(gl, vertex_position);
-  vbos[1] = create_vbo(gl, vertex_color);
-
+  vbos[0] = create_vbo(gl, circle3D[0]);
+  vbos[1] = create_vbo(gl, circle3D[1]);
+  vbos[2] = create_vbo(gl, circle3D[3]);
   set_attr(gl, vbos, attr, attStride);
+
+  var ibo = create_ibo(gl, index);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
 
   /* 使用minMatrix.js对矩阵的相关处理 */
   /* matIV对象生成 */
@@ -63,15 +70,27 @@ $(function() {
   var pMatrix = m.identity(m.create()); //投影矩阵
   var tmpMatrix = m.identity(m.create());
   var mvpMatrix = m.identity(m.create());
+  var invMatrix = m.identity(m.create());
 
+  // 平行光源的方向
+  var lightDirection = [-0.5, 0.0, 0.5];
+
+  //环境光参数
+  var ambientColor = [0.1,0.1,0.1,1.0];
+  // 视点向量
+  var eyeDirection = [0.0, 0.0, 20.0];
   // uniformLocation的获取
-  var uniLocation = gl.getUniformLocation(program, 'mvpMatrix');
-
+  var uniLocation = [];
+  uniLocation[0] = gl.getUniformLocation(program, 'mvpMatrix');
+  uniLocation[1] = gl.getUniformLocation(program, 'invMatrix');
+  uniLocation[2] = gl.getUniformLocation(program, 'lightDirection');
+  uniLocation[3] = gl.getUniformLocation(program, 'ambientColor');
+  uniLocation[4] = gl.getUniformLocation(program, 'eyeDirection');
   // 视图变换坐标矩阵
-  m.lookAt([0.0, 0.0, 3.0], [0, 0, 0], [0, 1, 0], vMatrix);
+  m.lookAt([0.0, 0.0, 20.0], [0, 0, 0], [0, 1, 0], vMatrix);
 
   // 投影坐标变换矩阵
-  m.perspective(90, canvas.width / canvas.height, 0.1, 100, pMatrix);
+  m.perspective(45, canvas.width / canvas.height, 0.1, 100, pMatrix);
 
   //得到视图投影变换矩阵
   m.multiply(pMatrix, vMatrix, tmpMatrix);
@@ -92,41 +111,46 @@ $(function() {
     var rad = (count % 360) * Math.PI / 180;
 
     // 模型1按照一个圆形轨道进行旋转
-    var x = Math.cos(rad);
-    var y = Math.sin(rad);
-    m.identity(mMatrix);
-    m.translate(mMatrix, [x, y, 0.0], mMatrix);
-
-    // 完成模型1的坐标变换矩阵，并进行绘图
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // var x = Math.cos(rad);
+    // var y = Math.sin(rad);
+    // m.identity(mMatrix);
+    // m.translate(mMatrix, [x, y, 0.0], mMatrix);
+    //
+    // // 完成模型1的坐标变换矩阵，并进行绘图
+    // m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    // gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
+    // gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     // 模型2沿Y轴进行旋转
     m.identity(mMatrix);
-    m.translate(mMatrix, [1.0, -1.0, 0.0], mMatrix);
-    m.rotate(mMatrix, rad, [0, 1, 0], mMatrix);
+    m.rotate(mMatrix, rad, [0, 1, 1], mMatrix);
 
     // 完成模型2的坐标变换矩阵，并进行绘图
     m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    m.inverse(mMatrix, invMatrix);
+
+    gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, invMatrix);
+    gl.uniform3fv(uniLocation[2], lightDirection);
+    gl.uniform4fv(uniLocation[3], ambientColor);
+    gl.uniform3fv(uniLocation[4], eyeDirection);
+    gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
 
     // 模型3进行放大缩小
-    var s = Math.sin(rad) + 1.0;
-    m.identity(mMatrix);
-    m.translate(mMatrix, [-1.0, -1.0, 0.0], mMatrix);
-    m.scale(mMatrix, [s, s, 0.0], mMatrix)
-
-    // 完成模型3的坐标变换矩阵，并进行绘图
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // var s = Math.sin(rad) + 1.0;
+    // m.identity(mMatrix);
+    // m.translate(mMatrix, [-1.0, -1.0, 0.0], mMatrix);
+    // m.scale(mMatrix, [s, s, 0.0], mMatrix)
+    //
+    // // 完成模型3的坐标变换矩阵，并进行绘图
+    // m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    // gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
+    // gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     // context刷新
     gl.flush();
-
     window.requestAnimationFrame(animation);
+
   }
   window.requestAnimationFrame(animation);
 });
@@ -231,4 +255,70 @@ function set_attr(gl, vbo, attrL, attrS) {
     //通知并添加attributeLocation
     gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
   }
+}
+
+function create_ibo(gl, data){
+  // 生成缓存对象
+  var ibo = gl.createBuffer();
+
+  // 绑定缓存
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+
+  // 向缓存中写入数据
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW);
+
+  // 将缓存的绑定无效化
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+  // 返回生成的IBO
+  return ibo;
+}
+
+function torus(row, column, irad, orad){
+  var pos = new Array(), nor = new Array(), col = new Array(), idx = new Array();
+  for(var i = 0; i <= row; i++){
+    var r = Math.PI * 2 / row * i;
+    var rr = Math.cos(r);
+    var ry = Math.sin(r);
+    for(var ii = 0; ii <= column; ii++){
+      var tr = Math.PI * 2 / column * ii;
+      var tx = (rr * irad + orad) * Math.cos(tr);
+      var ty = ry * irad;
+      var tz = (rr * irad + orad) * Math.sin(tr);
+      var rx = rr * Math.cos(tr);
+      var rz = rr * Math.sin(tr);
+      pos.push(tx, ty, tz);
+      nor.push(rx, ry, rz);
+      var tc = hsva(360 / column * ii, 1, 1, 1);
+      col.push(tc[0], tc[1], tc[2], tc[3]);
+    }
+  }
+  for(i = 0; i < row; i++){
+    for(ii = 0; ii < column; ii++){
+      r = (column + 1) * i + ii;
+      idx.push(r, r + column + 1, r + 1);
+      idx.push(r + column + 1, r + column + 2, r + 1);
+    }
+  }
+  return [pos, col, idx, nor];
+}
+
+function hsva(h, s, v, a){
+  if(s > 1 || v > 1 || a > 1){return;}
+  var th = h % 360;
+  var i = Math.floor(th / 60);
+  var f = th / 60 - i;
+  var m = v * (1 - s);
+  var n = v * (1 - s * f);
+  var k = v * (1 - s * (1 - f));
+  var color = new Array();
+  if(!s > 0 && !s < 0){
+    color.push(v, v, v, a);
+  } else {
+    var r = new Array(v, n, m, m, k, v);
+    var g = new Array(k, v, v, n, m, m);
+    var b = new Array(m, m, k, v, v, n);
+    color.push(r[i], g[i], b[i], a);
+  }
+  return color;
 }

@@ -38,12 +38,14 @@ $(function() {
   var vertex_position = [
     0.0, 1.0, 0.0,
     1.0, 0.0, 0.0,
-    -1.0, 0.0, 0.0
+    -1.0, 0.0, 0.0,
+    0.0, -1.0,  0.0,
   ];
   var vertex_color = [
     1.0, 0.0, 1.0, 1.0,
     0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0
+    0.0, 0.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0
   ]
   /* 生成VBO */
   var vbos = [];
@@ -95,6 +97,19 @@ $(function() {
   gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
   // 绘制模型
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  //索引缓存
+  var index = [
+    0, 1, 2,
+    1, 2, 3
+  ]
+  //创建索引缓存
+  var ibo = create_ibo(gl, index);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+  m.identity(mMatrix);
+  m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+  gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+  gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
 
   // context的刷新
   gl.flush();
@@ -217,4 +232,21 @@ function set_attr(gl, vbo, attrL, attrS) {
     //通知并添加attributeLocation
     gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
   }
+}
+
+function create_ibo(gl, data){
+  // 生成缓存对象
+  var ibo = gl.createBuffer();
+
+  // 绑定缓存
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+
+  // 向缓存中写入数据
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW);
+
+  // 将缓存的绑定无效化
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+  // 返回生成的IBO
+  return ibo;
 }
